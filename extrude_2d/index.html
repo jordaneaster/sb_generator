@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Landscape Generator</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        .controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 300px;
+        }
+        .controls h3 {
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        .control-group {
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        input, button, select {
+            margin: 5px;
+        }
+        button {
+            background: #4CAF50;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        label {
+            display: block;
+            margin: 5px;
+        }
+    </style>
+    <!-- Import maps to correctly resolve Three.js modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+                "three/examples/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="controls">
+        <h3>3D Landscape Generator for Godot</h3>
+        
+        <div>
+            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.tif,.tiff" />
+            <button onclick="loadSelectedFile()">Load Heightmap</button>
+        </div>
+
+        <div class="control-group">
+            <h4>Terrain Type</h4>
+            <select id="modelType" onchange="setModelType(this.value)">
+                <option value="heightmap">Standard Terrain</option>
+                <option value="heightmap-detail">High Detail Terrain</option>
+                <option value="low-poly">Low Poly Terrain</option>
+                <option value="voxel">Voxel Terrain</option>
+            </select>
+            <button onclick="toggleWireframe()">Toggle Wireframe</button>
+        </div>
+
+        <div class="control-group">
+            <h4>Terrain Settings</h4>
+            <label>
+                Size X (meters):
+                <input type="range" id="terrainWidth" min="1" max="1000" step="1" value="100" onchange="updateTerrainProperty('width', this.value)" />
+                <span id="terrainWidthValue">100</span>
+            </label>
+            
+            <label>
+                Size Z (meters):
+                <input type="range" id="terrainLength" min="1" max="1000" step="1" value="100" onchange="updateTerrainProperty('length', this.value)" />
+                <span id="terrainLengthValue">100</span>
+            </label>
+            
+            <label>
+                Height Scale:
+                <input type="range" id="heightScale" min="0.1" max="50" step="0.1" value="10.0" onchange="updateTerrainProperty('heightScale', this.value)" />
+                <span id="heightScaleValue">10.0</span>
+            </label>
+            
+            <label>
+                Resolution:
+                <input type="range" id="resolution" min="16" max="512" step="16" value="128" onchange="updateTerrainProperty('resolution', this.value)" />
+                <span id="resolutionValue">128</span>
+            </label>
+        </div>
+        
+        <div class="control-group">
+            <h4>Material Settings</h4>
+            <label>
+                Base Color:
+                <input type="color" id="baseColor" value="#8B5D33" onchange="updateTerrainMaterial('baseColor', this.value)" />
+            </label>
+            
+            <div>
+                <label>Texture Layers:</label>
+                <div>
+                    <input type="file" id="textureInput" accept=".jpg,.jpeg,.png" />
+                    <button onclick="addTextureLayer()">Add Texture</button>
+                </div>
+                <div id="textureLayers">
+                    <!-- Texture layers will be listed here -->
+                </div>
+            </div>
+            
+            <label>
+                <input type="checkbox" id="enableNormalMap" onchange="toggleNormalMap(this.checked)" />
+                Generate Normal Map
+            </label>
+        </div>
+        
+        <div class="control-group">
+            <h4>Godot Settings</h4>
+            <label>
+                <input type="checkbox" id="generateCollision" checked />
+                Generate Collision Mesh
+            </label><br>
+            <label>
+                <input type="checkbox" id="optimizeForGodot" checked />
+                Optimize for Godot
+            </label><br>
+            <label>
+                LOD Levels:
+                <input type="number" id="lodLevels" min="1" max="4" value="2" />
+            </label>
+        </div>
+        
+        <div class="control-group">
+            <h4>View Controls</h4>
+            <button onclick="setViewAngle('top')">Top</button>
+            <button onclick="setViewAngle('side')">Side</button>
+            <button onclick="setViewAngle('angled')">Angled</button>
+            <button onclick="resetView()">Reset</button>
+        </div>
+
+        <div class="control-group">
+            <h4>Export Landscape</h4>
+            <button onclick="exportLandscape('obj')">Export OBJ</button>
+            <button onclick="exportLandscape('gltf')">Export GLTF</button>
+            <button onclick="exportLandscape('godot')">Export for Godot</button>
+            <button onclick="exportHeightmapTexture()">Export Heightmap</button>
+        </div>
+    </div>
+
+    <script type="module" src="index.js"></script>
+    
+    <script>
+        // Define global functions that will be used immediately
+        window.loadHeightmap = function() { 
+            console.log("Initial loadHeightmap placeholder, will be replaced when module loads"); 
+        };
+        
+        // Will be called when a file is selected
+        function loadSelectedFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a heightmap image first!');
+                return;
+            }
+            
+            const objectURL = URL.createObjectURL(file);
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            
+            const heightScale = parseFloat(document.getElementById('heightScale').value);
+            const terrainWidth = parseFloat(document.getElementById('terrainWidth').value);
+            const terrainLength = parseFloat(document.getElementById('terrainLength').value);
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const modelType = document.getElementById('modelType').value;
+
+            if (['jpg', 'jpeg', 'png', 'tif', 'tiff'].includes(fileExt)) {
+                window.loadHeightmap(objectURL, { 
+                    heightScale: heightScale, 
+                    width: terrainWidth,
+                    length: terrainLength,
+                    resolution: resolution,
+                    terrainType: modelType
+                });
+            } else {
+                alert('Unsupported file type. Please use image files (.jpg, .png, .tif)');
+            }
+        }
+
+        // Update value display for sliders
+        document.getElementById('heightScale').addEventListener('input', function() {
+            document.getElementById('heightScaleValue').textContent = this.value;
+        });
+        
+        document.getElementById('terrainWidth').addEventListener('input', function() {
+            document.getElementById('terrainWidthValue').textContent = this.value;
+        });
+        
+        document.getElementById('terrainLength').addEventListener('input', function() {
+            document.getElementById('terrainLengthValue').textContent = this.value;
+        });
+        
+        document.getElementById('resolution').addEventListener('input', function() {
+            document.getElementById('resolutionValue').textContent = this.value;
+        });
+
+        // These functions will be defined in window scope by our module
+        function updateTerrainProperty(property, value) {
+            if (window.updateTerrainProperty) {
+                window.updateTerrainProperty(property, value);
+            }
+        }
+
+        function updateTerrainMaterial(property, value) {
+            if (window.updateTerrainMaterial) {
+                window.updateTerrainMaterial(property, value);
+            }
+        }
+
+        function addTextureLayer() {
+            const textureInput = document.getElementById('textureInput');
+            if (!textureInput.files[0]) {
+                alert('Please select a texture image first!');
+                return;
+            }
+            
+            const objectURL = URL.createObjectURL(textureInput.files[0]);
+            if (window.addTextureLayer) {
+                window.addTextureLayer(objectURL, textureInput.files[0].name);
+                textureInput.value = '';
+            }
+        }
+
+        function toggleNormalMap(enabled) {
+            if (window.toggleNormalMap) {
+                window.toggleNormalMap(enabled);
+            }
+        }
+
+        function exportLandscape(format) {
+            if (window.exportLandscape) {
+                const options = {
+                    generateCollision: document.getElementById('generateCollision').checked,
+                    optimizeForGodot: document.getElementById('optimizeForGodot').checked,
+                    lodLevels: parseInt(document.getElementById('lodLevels').value)
+                };
+                window.exportLandscape(format, options);
+            }
+        }
+
+        function exportHeightmapTexture() {
+            if (window.exportHeightmapTexture) {
+                window.exportHeightmapTexture();
+            }
+        }
+
+        function setModelType(type) {
+            if (window.setTerrainType) {
+                window.setTerrainType(type);
+            }
+        }
+
+        function setViewAngle(angle) {
+            if (window.setViewAngle) {
+                window.setViewAngle(angle);
+            }
+        }
+
+        function resetView() {
+            if (window.resetView) {
+                window.resetView();
+            }
+        }
+
+        function toggleWireframe() {
+            if (window.toggleWireframe) {
+                window.toggleWireframe();
+            }
+        }
+    </script>
+</body>
+</html>

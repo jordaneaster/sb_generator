@@ -1,0 +1,18 @@
+{
+  "name": "extrude_2d",
+  "version": "1.0.0",
+  "main": "extrude_2d.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "pixi": "^0.3.1",
+    "pixi.js": "^8.9.1",
+    "three": "^0.175.0"
+  }
+}
