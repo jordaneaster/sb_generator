@@ -1,15 +1,35 @@
 {
   "name": "sb_generator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "NFT Generator with Supabase and AWS S3 storage options",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
-    "start": "node index.js",
-    "start:s3": "cross-env USE_S3=true node index.js",
-    "generate": "cross-env FORCE_GENERATE=true node index.js",
-    "generate:s3": "cross-env USE_S3=true FORCE_GENERATE=true node index.js"
+    "start": "node examples/generate-nft.js",
+    "start:s3": "cross-env USE_S3=true node examples/generate-nft.js",
+    "generate": "cross-env FORCE_GENERATE=true node examples/generate-nft.js",
+    "generate:s3": "cross-env USE_S3=true FORCE_GENERATE=true node examples/generate-nft.js",
+    "test": "echo \"No tests specified\"",
+    "prepublishOnly": "npm run test"
   },
-  "keywords": [],
+  "keywords": [
+    "nft",
+    "generator",
+    "blockchain",
+    "crypto",
+    "art",
+    "supabase",
+    "s3"
+  ],
+  "files": [
+    "lib",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jordaneaster/sb_generator.git"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
