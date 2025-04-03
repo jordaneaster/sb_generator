@@ -1,6 +1,6 @@
 {
   "name": "sb_generator",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "NFT Generator with Supabase and AWS S3 storage options",
   "main": "lib/index.js",
   "scripts": {
